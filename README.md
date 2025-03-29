@@ -50,3 +50,8 @@ npm run serve
 
 ### 4️⃣ Access the Application
 Now, open your browser and go to `http://localhost:5173/` to view the application.
+
+---
+## 📸 Screenshot of the Website
+
+![Image](https://github.com/user-attachments/assets/1f0d6b23-454d-4cb0-8fb3-6456bc9b0acb)
