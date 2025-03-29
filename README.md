@@ -55,3 +55,5 @@ Now, open your browser and go to `http://localhost:5173/` to view the applicatio
 ## 📸 Screenshot of the Website
 
 ![Image](https://github.com/user-attachments/assets/1f0d6b23-454d-4cb0-8fb3-6456bc9b0acb)
+
+![Image](https://github.com/user-attachments/assets/f2443981-470a-4bdc-8831-e653eacb4fb6)
