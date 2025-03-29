@@ -28,4 +28,25 @@ An interactive map viewer built with **Vue.js, Leaflet, Spring Boot, and Postgre
 git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
 cd YOUR_REPOSITORY_NAME
 ```
+### 2️⃣ Backend Setup  
+# Make sure you have Java 17+ and Maven installed.
 
+Navigate to `backend/src/main/resources/` and create **application.yml** 
+Add database credentials, JWT settings, etc.
+
+### 3️⃣ Frontend Setup
+# Ensure Node.js (v16+) is installed
+Navigate to the frontend folder:
+```sh
+cd frontend
+```
+
+Install dependencies and start the app:
+```sh
+npm install
+npm run serve
+```
+
+
+### 4️⃣ Access the Application
+Now, open your browser and go to http://localhost:5173/ to view the application.
