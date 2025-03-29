@@ -37,23 +37,3 @@ Ensure you have the following installed:
 ```bash
 git clone https://github.com/your-username/FullStack-MapViewer-Vue-Leaflet-SpringBoot-PostgreSQL.git
 cd FullStack-MapViewer-Vue-Leaflet-SpringBoot-PostgreSQL
-
-### 2️⃣ Backend Setup  
-Navigate to `backend/src/main/resources/` and create **application.yml**  
-
-Add database credentials, JWT settings, etc.  
-
-Run the backend:  
-```bash
-cd backend
-mvn spring-boot:run
-
-### 3️⃣ Frontend Setup  
-Navigate to the frontend folder:  
-```bash
-cd frontend
-
-Install dependencies and start the app:
-```bash
-npm install
-npm run serve
