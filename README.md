@@ -25,8 +25,8 @@ An interactive map viewer built with **Vue.js, Leaflet, Spring Boot, and Postgre
 
 ### 1️⃣ Clone the Repository
 ```sh
-git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
-cd YOUR_REPOSITORY_NAME
+git clone https://github.com/your-username/FullStack-MapViewer-Vue-Leaflet-SpringBoot-PostgreSQL.git
+cd FullStack-MapViewer-Vue-Leaflet-SpringBoot-PostgreSQL
 ```
 ### 2️⃣ Backend Setup  
 #### Make sure you have Java 17+ and Maven installed.
