@@ -7,8 +7,10 @@
         <v-spacer></v-spacer>
         <v-btn text class="rounded-pill mx-2" @click="$router.push('/')">Home</v-btn>
         <v-btn text class="rounded-pill mx-2" @click="$router.push('/about')">About</v-btn>
-        <v-btn text class="rounded-pill mx-2" @click="$router.push('/login')" :class="['rounded-pill', 'dark-blue-btn']">Login</v-btn>
-        <v-btn color="blue darken-2" class="rounded-pill mx-2" @click="$router.push('/signup')" :class="['rounded-pill', 'dark-blue-btn']">
+        <v-btn text class="rounded-pill mx-2" @click="$router.push('/login')"
+          :class="['rounded-pill', 'dark-blue-btn']">Login</v-btn>
+        <v-btn color="blue darken-2" class="rounded-pill mx-2" @click="$router.push('/signup')"
+          :class="['rounded-pill', 'dark-blue-btn']">
           Join Now
         </v-btn>
       </v-app-bar>
@@ -33,8 +35,8 @@
           </v-col>
         </v-row>
 
-       <!-- Why Choose MapViewer Section -->
-       <v-row justify="center" class="features-section">
+        <!-- Why Choose MapViewer Section -->
+        <v-row justify="center" class="features-section">
           <v-col cols="12" class="text-center mb-12">
             <v-chip color="blue" class="mb-4" label>Features</v-chip>
             <h2 class="text-h3 font-weight-bold mb-3">Why Choose MapViewer?</h2>
@@ -61,24 +63,23 @@
         <!-- Feature Modal -->
         <v-dialog v-model="showFeatureModal" max-width="600">
           <v-card v-if="selectedFeature">
-            <v-card-title class="text-h4 pa-6">
-              {{ selectedFeature.title }}
-              <v-spacer></v-spacer>
-              <v-btn icon @click="showFeatureModal = false">
+            <div class="d-flex justify-end pa-2">
+              <v-btn variant= "text" icon @click="showFeatureModal = false">
                 <v-icon>mdi-close</v-icon>
               </v-btn>
-            </v-card-title>
-            <v-card-text class="pa-6">
+            </div>
+            <v-card-text class="px-6 pt-0 pb-6">
+              <h2 class="text-h4 mb-6">{{ selectedFeature.title }}</h2>
               <div class="feature-icon-wrapper mb-6"
                 :style="{ background: `linear-gradient(135deg, ${selectedFeature.gradientColors[0]} 0%, ${selectedFeature.gradientColors[1]} 100%)` }">
-                <v-icon size="32" :color="selectedFeature.color">{{ selectedFeature.icon }}</v-icon>
+                <v-icon size="24" :color="selectedFeature.color">{{ selectedFeature.icon }}</v-icon>
               </div>
               <p class="mb-6">{{ selectedFeature.fullDescription }}</p>
-              <v-list v-if="selectedFeature.benefits">
-                <v-list-subheader class="text-h6">Key Benefits</v-list-subheader>
-                <v-list-item v-for="(benefit, i) in selectedFeature.benefits" :key="i">
+              <v-list v-if="selectedFeature.benefits" class="pa-0">
+                <v-list-subheader class="text-h6 px-0">Key Benefits</v-list-subheader>
+                <v-list-item v-for="(benefit, i) in selectedFeature.benefits" :key="i" class="px-0">
                   <template v-slot:prepend>
-                    <v-icon color="blue-darken-2">mdi-check-circle</v-icon>
+                    <v-icon color="blue-darken-2" class="mr-2">mdi-check-circle</v-icon>
                   </template>
                   <v-list-item-title>{{ benefit }}</v-list-item-title>
                 </v-list-item>
@@ -105,9 +106,9 @@ import { ref } from 'vue';
 const showFeatureModal = ref(false);
 const selectedFeature = ref(null);
 const features = [
-  { 
-    icon: 'mdi-map-marker-path', 
-    title: 'Smart Routing', 
+  {
+    icon: 'mdi-map-marker-path',
+    title: 'Smart Routing',
     description: 'Find the most efficient paths with real-time optimization.',
     color: 'blue-darken-2',
     gradientColors: ['#E3F2FD', '#BBDEFB'],
@@ -119,9 +120,9 @@ const features = [
       'Step-by-step navigation instructions'
     ]
   },
-  { 
-    icon: 'mdi-map-check', 
-    title: 'Interactive Mapping', 
+  {
+    icon: 'mdi-map-check',
+    title: 'Interactive Mapping',
     description: 'Explore, locate, search, and customize maps with ease.',
     color: 'blue-darken-1',
     gradientColors: ['#E1F5FE', '#B3E5FC'],
@@ -133,9 +134,9 @@ const features = [
       'Map printing capabilities'
     ]
   },
-  { 
-    icon: 'mdi-human-greeting-variant', 
-    title: 'User Experience', 
+  {
+    icon: 'mdi-human-greeting-variant',
+    title: 'User Experience',
     description: 'An intuitive interface designed for smooth navigation.',
     color: 'blue',
     gradientColors: ['#E8EAF6', '#C5CAE9'],
@@ -147,9 +148,9 @@ const features = [
       'Responsive design for all devices'
     ]
   },
-  { 
-    icon: 'mdi-shield-lock-outline', 
-    title: 'Advanced Security', 
+  {
+    icon: 'mdi-shield-lock-outline',
+    title: 'Advanced Security',
     description: 'Your data is protected with encryption.',
     color: 'blue-lighten-1',
     gradientColors: ['#F3E5F5', '#E1BEE7'],
@@ -199,11 +200,47 @@ const openFeatureModal = (feature) => {
 
 .feature-card-new {
   padding: 2rem;
+  /* Change this to be more specific */
+  padding: 24px;
+  /* Consistent padding */
   height: 100%;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border-radius: 16px;
   border: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* Consistent spacing between elements */
+}
+
+/* Update the spacing for elements inside the feature card */
+.feature-card-new .feature-icon-wrapper {
+  margin-bottom: 16px;
+}
+
+.feature-card-new h3 {
+  margin-bottom: 12px;
+}
+
+.feature-card-new p {
+  margin-bottom: 16px;
+}
+
+.feature-card-new .v-btn {
+  margin-top: auto;
+  /* Push button to bottom */
+}
+
+/* Update feature icon wrapper for consistency */
+.feature-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
 }
 
 .feature-card-new:hover {
@@ -242,6 +279,4 @@ const openFeatureModal = (feature) => {
   font-size: 14px;
   margin: 0;
   color: black;
-}
-</style>
-
+}</style>
