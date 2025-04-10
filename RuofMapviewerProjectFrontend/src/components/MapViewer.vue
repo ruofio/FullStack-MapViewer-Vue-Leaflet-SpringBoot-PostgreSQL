@@ -1,5 +1,6 @@
 <template>
   <v-card class="map-container" :class="{ 'fullscreen': isFullScreen }">
+
     <!-- Welcome Dialog -->
     <v-dialog v-model="showWelcomeDialog" max-width="500">
       <v-card class="welcome-card">
@@ -13,24 +14,19 @@
         </v-card-text>
       </v-card>
     </v-dialog>
-    <v-card-text>
-      <v-btn icon class="fullscreen-toggle" @click="toggleFullScreen">
-        <v-icon>
-          {{ isFullScreen ? 'mdi-fullscreen-exit' : 'mdi-fullscreen' }}
-        </v-icon>
-      </v-btn>
 
+    <v-card-text>
+      <!-- Search Bar -->
       <v-row>
         <v-col cols="12" sm="6" md="4">
           <v-text-field v-model="searchQuery" label="Search location" prepend-inner-icon="mdi-magnify" clearable
-            @keyup="onSearchInput" @click:clear="clearSearchResults"  class="search-bar">
+            @keyup="onSearchInput" @click:clear="clearSearchResults" class="search-bar">
             <template v-slot:append>
               <v-btn color="primary" @click="searchLocation" :loading="isSearching" size="large" class="search-button">
                 Search
               </v-btn>
             </template>
           </v-text-field>
-
 
           <!-- Suggestions List -->
           <v-list v-if="searchResults.length && showSuggestions" dense class="suggestions-list">
@@ -43,10 +39,10 @@
         </v-col>
       </v-row>
 
-      <!-- Map Container -->
+      <!-- Map -->
       <div id="map"></div>
 
-      <!-- Routing Panel -->
+      <!-- Route Panel -->
       <v-expansion-panels class="mt-4">
         <v-expansion-panel>
           <v-expansion-panel-title>
@@ -67,12 +63,11 @@
             <v-btn color="primary" block @click="calculateRoute" :loading="isCalculatingRoute" class="mb-4">
               Calculate Route
             </v-btn>
-
             <v-btn color="red" block @click="clearRoute" class="mb-4">
               Clear Route
             </v-btn>
 
-            <!-- Route Information -->
+            <!-- Route Info -->
             <v-card v-if="routeInfo" variant="outlined" class="mb-4">
               <v-card-text>
                 <div class="d-flex align-center mb-2">
@@ -89,31 +84,47 @@
         </v-expansion-panel>
       </v-expansion-panels>
 
-      <!-- Map Control Buttons -->
+      <!-- Map Controls -->
       <div class="map-controls">
-        <v-btn color="primary" class="map-btn" prepend-icon="mdi-crosshairs-gps" @click="getCurrentLocation"
-          :loading="isLocating">
-          My Location
-        </v-btn>
-        <v-btn color="secondary" class="map-btn" prepend-icon="mdi-printer" @click="printMap">
-          Print Map
-        </v-btn>
-        <v-btn color="primary" class="map-btn" prepend-icon="mdi-refresh" @click="resetMap">
-          Reset Map
-        </v-btn>
+        <v-speed-dial location="left center" transition="fade-transition">
+          <template v-slot:activator="{ props: activatorProps }">
+            <v-fab v-bind="activatorProps" size="large" color="primary" icon="mdi-plus"></v-fab>
+          </template>
+
+          <!-- My Location -->
+          <v-tooltip location="top" text="My Location">
+            <template v-slot:activator="{ props }">
+              <v-btn v-bind="props" color="blue-lighten-4" class="map-btn" icon="mdi-crosshairs-gps"
+                @click="getCurrentLocation" :loading="isLocating" />
+            </template>
+          </v-tooltip>
+
+          <!-- Print Map -->
+          <v-tooltip location="top" text="Print Map">
+            <template v-slot:activator="{ props }">
+              <v-btn v-bind="props" color="blue-lighten-4" class="map-btn" icon="mdi-printer" @click="printMap" />
+            </template>
+          </v-tooltip>
+
+          <!-- Reset Map -->
+          <v-tooltip location="top" text="Reset Map">
+            <template v-slot:activator="{ props }">
+              <v-btn v-bind="props" color="blue-lighten-4" class="map-btn" icon="mdi-refresh" @click="resetMap" />
+            </template>
+          </v-tooltip>
+        </v-speed-dial>
       </div>
     </v-card-text>
 
-    <!-- Snackbars -->
+    <!-- Notifications -->
     <v-snackbar v-model="showError" color="error" timeout="3000">
       {{ errorMessage }}
     </v-snackbar>
-
     <v-snackbar v-model="showSuccess" color="success" timeout="3000">
       {{ successMessage }}
     </v-snackbar>
 
-    <!-- Footer Section -->
+    <!-- Footer -->
     <v-footer class="pa-4">
       <v-row justify="center">
         <v-col cols="12" md="6" class="text-center text-black">
@@ -121,6 +132,7 @@
         </v-col>
       </v-row>
     </v-footer>
+
   </v-card>
 </template>
 
@@ -130,10 +142,13 @@ import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import "leaflet-routing-machine"
 import "leaflet-routing-machine/dist/leaflet-routing-machine.css"
+import 'leaflet-draw';
+import 'leaflet-draw/dist/leaflet.draw.css';
+import 'leaflet-geometryutil';
 
 // State variables
 const searchQuery = ref('')
-const searchResults = ref([]) // Holds search suggestions
+const searchResults = ref([])
 const startLocation = ref('')
 const endLocation = ref('')
 const isSearching = ref(false)
@@ -146,74 +161,82 @@ const successMessage = ref('')
 const routeInfo = ref(null)
 const isFullScreen = ref(false)
 const showWelcomeDialog = ref(true)
-const showSuggestions = ref(true);
+const showSuggestions = ref(true)
+const currentLanguage = ref('en')
+const languages = [
+  { code: 'en', name: 'English' },
+  { code: 'ar', name: 'العربية' },
+  { code: 'fr', name: 'Français' },
+  { code: 'es', name: 'Español' },
+  { code: 'zh', name: '中文' }
+]
 
-
-
-// Map and marker variables
+// Map and control variables
 let map = null
 let currentMarker = null
 let locationMarker = null
 let routingControl = null
+let streetLayer = null
+let satelliteLayer = null
+let terrainLayer = null
+let layerControl = null
+let drawnItems = null
 
 // Full-screen toggle method
 const toggleFullScreen = () => {
-  isFullScreen.value = !isFullScreen.value
-
-  // Browser full-screen handling
+  isFullScreen.value = !isFullScreen.value;
+  const button = document.querySelector('.leaflet-control-fullscreen-button i');
+  
   if (!document.fullscreenElement) {
-    const mapContainer = document.querySelector('.map-container')
+    const mapContainer = document.querySelector('.map-container');
     if (mapContainer.requestFullscreen) {
-      mapContainer.requestFullscreen()
+      mapContainer.requestFullscreen();
     } else if (mapContainer.mozRequestFullScreen) {
-      mapContainer.mozRequestFullScreen()
+      mapContainer.mozRequestFullScreen();
     } else if (mapContainer.webkitRequestFullscreen) {
-      mapContainer.webkitRequestFullscreen()
+      mapContainer.webkitRequestFullscreen();
     } else if (mapContainer.msRequestFullscreen) {
-      mapContainer.msRequestFullscreen()
+      mapContainer.msRequestFullscreen();
     }
+    if (button) button.className = 'fas fa-compress';
   } else {
     if (document.exitFullscreen) {
-      document.exitFullscreen()
+      document.exitFullscreen();
     } else if (document.mozCancelFullScreen) {
-      document.mozCancelFullScreen()
+      document.mozCancelFullScreen();
     } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen()
+      document.webkitExitFullscreen();
     } else if (document.msExitFullscreen) {
-      document.msExitFullscreen()
+      document.msExitFullscreen();
     }
+    if (button) button.className = 'fas fa-expand';
   }
 
-  // Resize map after a short delay
   setTimeout(() => {
     if (map) {
-      map.invalidateSize()
+      map.invalidateSize();
     }
-  }, 100)
-}
+  }, 100);
+};
 
-// Fullscreen change event handler
 const handleFullscreenChange = () => {
   isFullScreen.value = !!document.fullscreenElement
 }
-// Search location function
+
+// Search and location functions
 const searchLocation = async () => {
   if (!searchQuery.value) return
-
   isSearching.value = true
-
   try {
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery.value)}`
     )
     const data = await response.json()
-
     if (data.length === 0) {
       errorMessage.value = 'Location not found'
       showError.value = true
       return
     }
-
     const location = data[0]
     const coords = L.latLng(location.lat, location.lon)
     map.setView(coords, 13)
@@ -226,13 +249,11 @@ const searchLocation = async () => {
   }
 }
 
-// Handle search input to show suggestions
 const onSearchInput = async () => {
   if (!searchQuery.value.trim()) {
     searchResults.value = []
     return
   }
-
   isSearching.value = true
   try {
     const response = await fetch(
@@ -247,64 +268,50 @@ const onSearchInput = async () => {
   }
 }
 
-// Select location from suggestions
 const selectLocation = (location) => {
   searchQuery.value = location.display_name
-  searchResults.value = [] // Clear the suggestions
-
+  searchResults.value = []
   const coords = L.latLng(location.lat, location.lon)
   map.setView(coords, 13)
   addMarker(coords, `Location: ${location.display_name}`)
 }
 
-
 const clearSearchResults = () => {
   searchQuery.value = ''
-  searchResults.value = [] // Clears the suggestions list
+  searchResults.value = []
 }
 
-
-// Add marker function
 const addMarker = (coords, description) => {
   if (currentMarker) {
     map.removeLayer(currentMarker)
   }
-
   currentMarker = L.marker(coords)
     .addTo(map)
     .bindPopup(description)
     .openPopup()
 }
 
-// Get current location function
 const getCurrentLocation = () => {
   isLocating.value = true
-
   if (!navigator.geolocation) {
     errorMessage.value = 'Geolocation is not supported by your browser'
     showError.value = true
     isLocating.value = false
     return
   }
-
   navigator.geolocation.getCurrentPosition(
     (position) => {
       const { latitude, longitude } = position.coords
-
-      // Add the "You are here!" marker
       addMarker([latitude, longitude], "You are here!")
-
       if (locationMarker) {
         map.removeLayer(locationMarker)
       }
-
       locationMarker = L.marker([latitude, longitude], {
         icon: L.divIcon({
           className: 'current-location-marker',
           html: '<div class="ping"></div>',
         })
       }).addTo(map)
-
       map.setView([latitude, longitude], 13)
       isLocating.value = false
     },
@@ -316,123 +323,67 @@ const getCurrentLocation = () => {
   )
 }
 
-// Calculate route function
-
+// Route calculation
 const calculateRoute = async () => {
-
   if (!startLocation.value || !endLocation.value) {
-
     errorMessage.value = 'Please enter both start and end locations'
-
     showError.value = true
-
     return
-
   }
 
   isCalculatingRoute.value = true
-
   try {
-
-    // Get coordinates for start location
-
     const startResponse = await fetch(
-
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(startLocation.value)}`
-
     )
-
     const startData = await startResponse.json()
-
-    // Get coordinates for end location
-
     const endResponse = await fetch(
-
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endLocation.value)}`
-
     )
-
     const endData = await endResponse.json()
 
     if (startData.length === 0 || endData.length === 0) {
-
       throw new Error('One or both locations not found')
-
     }
 
     const startCoords = L.latLng(startData[0].lat, startData[0].lon)
-
     const endCoords = L.latLng(endData[0].lat, endData[0].lon)
 
-    // Remove existing routing control if it exists
-
     if (routingControl) {
-
       map.removeControl(routingControl)
-
     }
 
-    // Add new routing control
-
     routingControl = L.Routing.control({
-
       waypoints: [startCoords, endCoords],
-
       routeWhileDragging: true,
-
       showAlternatives: true,
-
       lineOptions: {
-
         styles: [{ color: '#1976D2', weight: 4 }]
-
       }
-
     }).addTo(map)
 
-    // Update route info when route is calculated
-
     routingControl.on('routesfound', (e) => {
-
       const routes = e.routes[0]
-
       routeInfo.value = {
-
         distance: (routes.summary.totalDistance / 1000).toFixed(2) + ' km',
-
         duration: Math.round(routes.summary.totalTime / 60) + ' minutes'
-
       }
-
     })
 
-    // Fit the map to show the entire route
-
     const bounds = L.latLngBounds([startCoords, endCoords])
-
     map.fitBounds(bounds, { padding: [50, 50] })
-
   } catch (error) {
-
     errorMessage.value = error.message || 'Error calculating route'
-
     showError.value = true
-
   } finally {
-
     isCalculatingRoute.value = false
-
   }
-
 }
 
-// Print map function
 const printMap = () => {
   window.print()
 }
 
-
-// Clear route function
 const clearRoute = () => {
   if (routingControl) {
     map.removeControl(routingControl)
@@ -440,9 +391,8 @@ const clearRoute = () => {
   routeInfo.value = null
 }
 
-// Reset map function
 const resetMap = () => {
-  map.setView([23.8859, 45.0792], 5) // Center map to Saudi Arabia
+  map.setView([23.8859, 45.0792], 5)
   if (currentMarker) {
     map.removeLayer(currentMarker)
   }
@@ -455,25 +405,315 @@ const resetMap = () => {
   routeInfo.value = null
 }
 
-// Initialize map on mount
 onMounted(() => {
-  map = L.map('map').setView([23.8859, 45.0792], 5) // Center map to Saudi Arabia
+  map = L.map('map', {
+    center: [23.8859, 45.0792],
+    zoom: 5,
+    minZoom: 0,
+    maxZoom: 19,
+    zoomControl: false,
+    maxBounds: [[-90, -180], [90, 180]],
+    maxBoundsViscosity: 1.0,
+    worldCopyJump: true
+  })
+  //full screen
+  L.Control.Fullscreen = L.Control.extend({
+  options: {
+    position: 'topleft'
+  },
 
-  L.tileLayer(
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  onAdd: function(map) {
+    const container = L.DomUtil.create('div', 'leaflet-control-fullscreen leaflet-bar leaflet-control');
+    const button = L.DomUtil.create('a', 'leaflet-control-fullscreen-button', container);
+    button.href = '#';
+    button.title = 'Full Screen';
+    button.innerHTML = '<i class="fas fa-expand"></i>'; // You can replace this with your preferred icon
+
+    L.DomEvent.on(button, 'click', L.DomEvent.stopPropagation)
+      .on(button, 'click', L.DomEvent.preventDefault)
+      .on(button, 'click', () => {
+        toggleFullScreen();
+      });
+
+    return container;
+  }
+});
+
+L.control.fullscreen = function(opts) {
+  return new L.Control.Fullscreen(opts);
+}
+
+// Add the fullscreen control to the map
+L.control.fullscreen({ position: 'topleft' }).addTo(map);
+
+  // Create custom panes for better layer management
+  map.createPane('base')
+  map.getPane('base').style.zIndex = 200
+
+  streetLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19,
+    minZoom: 0,
+    pane: 'base',
+    bounds: [[-90, -180], [90, 180]],
+    tileSize: 256,
+    noWrap: false,
+    tms: false,
+    worldCopyJump: true,
+    continuousWorld: true,
+    zoomOffset: 0
+  })
+
+  satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri',
+    maxZoom: 19,
+    minZoom: 0,
+    pane: 'base',
+    bounds: [[-90, -180], [90, 180]],
+    tileSize: 256,
+    noWrap: false,
+    tms: false,
+    worldCopyJump: true,
+    continuousWorld: true,
+    zoomOffset: 0
+  })
+
+  terrainLayer = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+    attribution: '© OpenTopoMap contributors',
+    maxZoom: 17,
+    minZoom: 0,
+    pane: 'base',
+    bounds: [[-90, -180], [90, 180]],
+    tileSize: 256,
+    noWrap: false,
+    tms: false,
+    worldCopyJump: true,
+    continuousWorld: true,
+    zoomOffset: 0
+  })
+
+  // Add this extension to handle world copies
+  L.GridLayer.prototype._setView = function(center, zoom, noPrune, noUpdate) {
+    var tileZoom = Math.round(zoom);
+    if ((this.options.maxZoom !== undefined && tileZoom > this.options.maxZoom) ||
+        (this.options.minZoom !== undefined && tileZoom < this.options.minZoom)) {
+      tileZoom = undefined;
     }
-  ).addTo(map)
 
-  // Add fullscreen event listeners
-  document.addEventListener('fullscreenchange', handleFullscreenChange)
-  document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
-  document.addEventListener('mozfullscreenchange', handleFullscreenChange)
-  document.addEventListener('MSFullscreenChange', handleFullscreenChange)
+    var tileZoomChanged = this.options.updateWhenZooming && (tileZoom !== this._tileZoom);
+
+    if (!noUpdate || tileZoomChanged) {
+      this._tileZoom = tileZoom;
+
+      if (this._abortLoading) {
+        this._abortLoading();
+      }
+
+      this._updateLevels();
+      this._resetGrid();
+
+      if (tileZoom !== undefined) {
+        this._update(center);
+      }
+
+      if (!noPrune) {
+        this._pruneTiles();
+      }
+
+      this._noPrune = !!noPrune;
+    }
+
+    this._setZoomTransforms(center, zoom);
+  }
+
+  // Try alternative tile servers for better coverage
+  const alternativeStreetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors, © CARTO',
+    maxZoom: 19,
+    minZoom: 0,
+    pane: 'base',
+    bounds: [[-90, -180], [90, 180]],
+    tileSize: 256,
+    noWrap: false,
+    tms: false,
+    worldCopyJump: true,
+    continuousWorld: true,
+    zoomOffset: 0
+  })
+
+  // Add the layers to the map
+  alternativeStreetLayer.addTo(map)
+
+  const baseLayers = {
+    "Streets (Default)": alternativeStreetLayer,
+    "Streets (OSM)": streetLayer,
+    "Satellite": satelliteLayer,
+    "Terrain": terrainLayer
+  }
+
+  const overlayLayers = {
+    "Traffic": L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }),
+    "Buildings": L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    })
+  }
+
+  layerControl = L.control.layers(baseLayers, overlayLayers, { position: 'topright' }).addTo(map)
+  L.control.scale({ position: 'bottomright' }).addTo(map)
+
+  // Initialize FeatureGroup for drawn items
+  drawnItems = new L.FeatureGroup()
+  map.addLayer(drawnItems)
+
+  // Initialize FeatureGroup for drawn items
+  drawnItems = new L.FeatureGroup();
+  map.addLayer(drawnItems);
+
+  // Initialize draw control without rectangle
+  const drawControl = new L.Control.Draw({
+    position: 'topleft',
+    draw: {
+      polygon: {
+        allowIntersection: false,
+        showArea: true
+      },
+      polyline: {
+        metric: true
+      },
+      circle: {
+        metric: true
+      },
+      rectangle: false, // Disable rectangle here
+      circlemarker: false,
+      marker: true
+    },
+    edit: {
+      featureGroup: drawnItems,
+      remove: true
+    }
+  });
+
+  map.addControl(drawControl);
+  
+
+  // Handle draw events
+map.on('draw:created', async (e) => {
+  const layer = e.layer;
+  const type = e.layerType;
+
+  if (type === 'marker') {
+    const coords = layer.getLatLng();
+    try {
+      // Fetch location information using reverse geocoding
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`
+      );
+      const data = await response.json();
+
+      // Create detailed popup content
+      const popupContent = `
+        <div class="marker-popup">
+          <h5 class="text-lg font-bold mb-2">${data.display_name}</h5>
+          <div class="marker-details">
+            ${data.address ? `
+              <p><strong>Address:</strong> ${data.address.road || ''} ${data.address.house_number || ''}</p>
+              <p><strong>City:</strong> ${data.address.city || data.address.town || data.address.village || ''}</p>
+              <p><strong>State:</strong> ${data.address.state || ''}</p>
+              <p><strong>Country:</strong> ${data.address.country || ''}</p>
+              <p><strong>Postal Code:</strong> ${data.address.postcode || ''}</p>
+            ` : ''}
+            <p><strong>Coordinates:</strong> ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}</p>
+          </div>
+        </div>
+      `;
+
+      layer.bindPopup(popupContent, {
+        maxWidth: 300,
+        className: 'custom-popup'
+      }).openPopup();
+    } catch (error) {
+      console.error('Error fetching location details:', error);
+      // Fallback popup if reverse geocoding fails
+      layer.bindPopup(`
+        <div class="marker-popup">
+          <h3>Location Details</h3>
+          <p><strong>Coordinates:</strong> ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}</p>
+        </div>
+      `).openPopup();
+    }
+  } else if (type === 'polygon' || type === 'rectangle') {
+    const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
+    layer.bindPopup(`Area: ${(area / 1000000).toFixed(2)} km²`);
+  } else if (type === 'polyline') {
+    const latlngs = layer.getLatLngs();
+    let length = 0;
+    for (let i = 1; i < latlngs.length; i++) {
+      length += latlngs[i - 1].distanceTo(latlngs[i]);
+    }
+    layer.bindPopup(`Length: ${(length / 1000).toFixed(2)} km`);
+  } else if (type === 'circle') {
+    const radius = layer.getRadius();
+    const area = Math.PI * radius * radius;
+    layer.bindPopup(`Radius: ${(radius / 1000).toFixed(2)} km<br>Area: ${(area / 1000000).toFixed(2)} km²`);
+  }
+
+  drawnItems.addLayer(layer);
+});
+
+// Handle editing of existing markers
+map.on('draw:edited', async (e) => {
+  const layers = e.layers;
+  layers.eachLayer(async (layer) => {
+    if (layer instanceof L.Marker) {
+      const coords = layer.getLatLng();
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`
+        );
+        const data = await response.json();
+
+        const popupContent = `
+          <div class="marker-popup">
+            <h5 class="text-lg font-bold mb-2">${data.display_name}</5>
+            <div class="marker-details">
+              ${data.address ? `
+                <p><strong>Address:</strong> ${data.address.road || ''} ${data.address.house_number || ''}</p>
+                <p><strong>City:</strong> ${data.address.city || data.address.town || data.address.village || ''}</p>
+                <p><strong>State:</strong> ${data.address.state || ''}</p>
+                <p><strong>Country:</strong> ${data.address.country || ''}</p>
+                <p><strong>Postal Code:</strong> ${data.address.postcode || ''}</p>
+              ` : ''}
+              <p><strong>Coordinates:</strong> ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}</p>
+            </div>
+          </div>
+        `;
+
+        layer.setPopupContent(popupContent);
+        layer.openPopup();
+      } catch (error) {
+        console.error('Error updating location details:', error);
+      }
+    } else if (layer instanceof L.Polygon || layer instanceof L.Rectangle) {
+      const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
+      layer.setPopupContent(`Area: ${(area / 1000000).toFixed(2)} km²`);
+    } else if (layer instanceof L.Polyline) {
+      const latlngs = layer.getLatLngs();
+      let length = 0;
+      for (let i = 1; i < latlngs.length; i++) {
+        length += latlngs[i - 1].distanceTo(latlngs[i]);
+      }
+      layer.setPopupContent(`Length: ${(length / 1000).toFixed(2)} km`);
+    }
+  });
+});
+
+
+
 })
-
-// Remove event listeners when component is unmounted
 onUnmounted(() => {
   document.removeEventListener('fullscreenchange', handleFullscreenChange)
   document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
@@ -486,6 +726,14 @@ onUnmounted(() => {
 .map-container {
   position: relative;
   transition: all 0.3s ease;
+}
+
+.map-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  /* Make sure it's above the map */
 }
 
 .welcome-card {
@@ -506,7 +754,6 @@ onUnmounted(() => {
 
 .fullscreen #map {
   height: calc(100vh - 100px);
-  /* Adjust as needed */
   width: 100%;
 }
 
@@ -523,9 +770,24 @@ onUnmounted(() => {
 }
 
 #map {
-  height: 600px;
+  height: 700px;
   width: 100%;
   transition: height 0.3s ease;
+  background: #f2f2f2;
+}
+
+.leaflet-layer {
+  will-change: transform;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.leaflet-tile-container {
+  will-change: transform;
+  transform-origin: 0 0;
+}
+
+.leaflet-tile {
+  box-shadow: none !important;
 }
 
 .map-controls {
@@ -539,16 +801,19 @@ onUnmounted(() => {
   font-size: 12px;
   padding: 6px;
 }
+
 .search-bar {
-    margin-bottom: 4px; /* Adjust this value to control the space */
-  }
-.search-button {
-  font-size: 16px; /* Makes the text larger */
-  padding: 10px 22px; /* Increases padding for a bigger button */
-  min-width: 120px; /* Ensures a minimum width */
+  margin-bottom: 4px;
 }
+
+.search-button {
+  font-size: 16px;
+  padding: 10px 22px;
+  min-width: 120px;
+}
+
 .suggestions-list {
-  margin-top: -28px; /* Adjust to remove space */
+  margin-top: -28px;
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid #ddd;
@@ -568,13 +833,84 @@ onUnmounted(() => {
   margin: 0 5px;
 }
 
+/* Draw control styles */
+.leaflet-draw-tooltip {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid #000;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.leaflet-draw-actions {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+.leaflet-draw-actions a {
+  color: #333;
+  text-decoration: none;
+  padding: 8px 12px;
+  display: block;
+  border-bottom: 1px solid #eee;
+}
+
+.leaflet-draw-actions a:last-child {
+  border-bottom: none;
+}
+
+.leaflet-draw-actions a:hover {
+  background-color: #f5f5f5;
+}
+
+/* Current location marker animation */
+.current-location-marker {
+  position: relative;
+}
+
+.ping {
+  width: 16px;
+  height: 16px;
+  background: #1976D2;
+  border-radius: 50%;
+  position: relative;
+}
+
+.ping::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #1976D2;
+  border-radius: 50%;
+  animation: ping 1.5s ease-out infinite;
+}
+
+@keyframes ping {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
 @media print {
 
   .v-card-title,
   .v-text-field,
   .map-controls,
   .v-snackbar,
-  .v-expansion-panels {
+  .v-expansion-panels,
+  .leaflet-control-layers,
+  .leaflet-draw {
     display: none !important;
   }
 
@@ -586,5 +922,78 @@ onUnmounted(() => {
   .map-container {
     margin: 0 !important;
   }
+}
+
+/* Layer control styles */
+.leaflet-control-layers {
+  background: white;
+  padding: 6px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+.leaflet-control-layers-toggle {
+  width: 36px;
+  height: 36px;
+  background-size: 20px 20px;
+}
+
+.leaflet-control-layers-expanded {
+  padding: 6px 10px 6px 6px;
+  min-width: 200px;
+}
+
+.leaflet-control-layers-list {
+  margin: 0;
+  padding: 0;
+}
+
+/* Scale control styles */
+.leaflet-control-scale {
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 2px 5px;
+  border-radius: 2px;
+}
+
+/* Draw measurement result popup styles */
+.leaflet-popup-content {
+  margin: 8px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+.leaflet-control-fullscreen {
+  background: white;
+  border: 2px solid rgba(0,0,0,0.2);
+  border-radius: 4px;
+}
+
+.leaflet-control-fullscreen-button {
+  width: 30px;
+  height: 30px;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  display: block;
+  text-align: center;
+  line-height: 30px;
+  color: #333;
+  text-decoration: none;
+}
+
+.leaflet-control-fullscreen-button:hover {
+  background-color: #f4f4f4;
+}
+
+/* Add Font Awesome icon styles */
+.leaflet-control-fullscreen-button i {
+  font-size: 16px;
 }
 </style>
