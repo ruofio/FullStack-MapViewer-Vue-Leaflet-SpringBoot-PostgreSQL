@@ -1,5 +1,6 @@
 <template>
   <v-card class="map-container" :class="{ 'fullscreen': isFullScreen }">
+
     <!-- Welcome Dialog -->
     <v-dialog v-model="showWelcomeDialog" max-width="500">
       <v-card class="welcome-card">
@@ -15,7 +16,8 @@
     </v-dialog>
 
     <v-card-text>
-      <!-- Search Bar -->
+
+      <!-- Search Bar & Suggestions -->
       <v-row>
         <v-col cols="12" sm="6" md="4">
           <v-text-field v-model="searchQuery" label="Search location" prepend-inner-icon="mdi-magnify" clearable
@@ -27,7 +29,6 @@
             </template>
           </v-text-field>
 
-          <!-- Suggestions List -->
           <v-list v-if="searchResults.length && showSuggestions" dense class="suggestions-list">
             <v-list-item v-for="(result, index) in searchResults" :key="index" @click="selectLocation(result)">
               <v-list-item-content>
@@ -38,13 +39,13 @@
         </v-col>
       </v-row>
 
-
+      <!-- Add Favorite Place Dialog -->
       <v-dialog v-model="showPlaceDialog" max-width="400px">
         <v-card>
           <v-card-title>Add Favorite Place</v-card-title>
           <v-card-text>
-            <v-text-field v-model="placeName" label="Place Name"></v-text-field>
-            <v-textarea v-model="placeDescription" label="Description"></v-textarea>
+            <v-text-field v-model="placeName" label="Place Name" />
+            <v-textarea v-model="placeDescription" label="Description" />
           </v-card-text>
           <v-card-actions>
             <v-btn color="primary" @click="addFavoritePlace">Add Place</v-btn>
@@ -53,6 +54,7 @@
         </v-card>
       </v-dialog>
 
+      <!-- Edit Favorite Place Dialog -->
       <v-dialog v-model="showEditDialog" max-width="400px">
         <v-card>
           <v-card-title>Edit Favorite Place</v-card-title>
@@ -67,9 +69,7 @@
         </v-card>
       </v-dialog>
 
-
-
-      <!-- Favorite Places List -->
+      <!-- Favorite Places List Dialog -->
       <v-dialog v-model="showFavorites" max-width="600">
         <v-card class="pa-4">
           <v-card-title class="text-h5 font-weight-bold d-flex align-center justify-space-between">
@@ -91,12 +91,10 @@
                 <template v-slot:prepend>
                   <v-icon color="primary">mdi-map-marker-heart</v-icon>
                 </template>
-
                 <v-list-item-content>
                   <v-list-item-title class="font-weight-bold text-primary">{{ place.name }}</v-list-item-title>
                   <v-list-item-subtitle>{{ place.description }}</v-list-item-subtitle>
                 </v-list-item-content>
-
                 <v-list-item-action class="d-flex justify-end">
                   <v-btn variant="text" icon @click="startEditPlace(place)">
                     <v-icon color="blue">mdi-pencil</v-icon>
@@ -106,24 +104,22 @@
                   </v-btn>
                 </v-list-item-action>
               </v-list-item>
+
               <v-list-item v-if="favoritePlaces.length === 0" class="justify-center">
                 <v-list-item-content class="text-center text-grey">
-                 
                   <v-list-item-title class="mt-2">No favorite places yet ):</v-list-item-title>
                 </v-list-item-content>
               </v-list-item>
-
             </v-list>
           </v-card-text>
         </v-card>
       </v-dialog>
 
-
-      <!-- Map -->
+      <!-- Leaflet Map -->
       <div id="map"></div>
 
       <!-- Route Panel -->
-      <v-expansion-panels class="mt-4">
+      <v-expansion-panels class="mt-4 route-panel">
         <v-expansion-panel>
           <v-expansion-panel-title>
             <v-icon start>mdi-routes</v-icon>
@@ -140,12 +136,10 @@
                   clearable />
               </v-col>
             </v-row>
-            <v-btn color="primary" block @click="calculateRoute" :loading="isCalculatingRoute" class="mb-4">
-              Calculate Route
-            </v-btn>
-            <v-btn color="red" block @click="clearRoute" class="mb-4">
-              Clear Route
-            </v-btn>
+
+            <v-btn color="primary" block @click="calculateRoute" :loading="isCalculatingRoute" class="mb-4">Calculate
+              Route</v-btn>
+            <v-btn color="red" block @click="clearRoute" class="mb-4">Clear Route</v-btn>
 
             <!-- Route Info -->
             <v-card v-if="routeInfo" variant="outlined" class="mb-4">
@@ -164,11 +158,11 @@
         </v-expansion-panel>
       </v-expansion-panels>
 
-      <!-- Map Controls -->
+      <!-- Map Controls (Speed Dial) -->
       <div class="map-controls">
         <v-speed-dial location="left center" transition="fade-transition">
           <template v-slot:activator="{ props: activatorProps }">
-            <v-fab v-bind="activatorProps" size="large" color="primary" icon="mdi-plus"></v-fab>
+            <v-fab v-bind="activatorProps" size="large" color="primary" icon="mdi-plus" />
           </template>
 
           <!-- My Location -->
@@ -179,21 +173,21 @@
             </template>
           </v-tooltip>
 
-          <!-- Print Map -->
+          <!-- Print -->
           <v-tooltip location="top" text="Print Map">
             <template v-slot:activator="{ props }">
               <v-btn v-bind="props" color="blue-lighten-4" class="map-btn" icon="mdi-printer" @click="printMap" />
             </template>
           </v-tooltip>
 
-          <!-- Reset Map -->
+          <!-- Reset -->
           <v-tooltip location="top" text="Reset Map">
             <template v-slot:activator="{ props }">
               <v-btn v-bind="props" color="blue-lighten-4" class="map-btn" icon="mdi-refresh" @click="resetMap" />
             </template>
           </v-tooltip>
 
-          <!-- Favorite Places -->
+          <!-- Favorites -->
           <v-tooltip location="top" text="View Favorite Places">
             <template v-slot:activator="{ props }">
               <v-btn v-bind="props" color="blue-lighten-4" class="map-btn" icon="mdi-heart"
@@ -203,13 +197,10 @@
         </v-speed-dial>
       </div>
     </v-card-text>
+
     <!-- Notifications -->
-    <v-snackbar v-model="showError" color="error" timeout="3000">
-      {{ errorMessage }}
-    </v-snackbar>
-    <v-snackbar v-model="showSuccess" color="success" timeout="3000">
-      {{ successMessage }}
-    </v-snackbar>
+    <v-snackbar v-model="showError" color="error" timeout="3000">{{ errorMessage }}</v-snackbar>
+    <v-snackbar v-model="showSuccess" color="success" timeout="3000">{{ successMessage }}</v-snackbar>
 
     <!-- Footer -->
     <v-footer class="pa-4">
@@ -221,6 +212,7 @@
     </v-footer>
   </v-card>
 </template>
+
 
 <script setup>
 // Vue Composition API & Leaflet core
@@ -235,8 +227,8 @@ import 'leaflet-draw'
 import 'leaflet-draw/dist/leaflet.draw.css'
 import 'leaflet-geometryutil'
 import axios from 'axios';
-
 axios.defaults.withCredentials = true;
+
 // UI states
 const searchQuery = ref('')
 const searchResults = ref([])
@@ -254,15 +246,16 @@ const isFullScreen = ref(false)
 const showWelcomeDialog = ref(true)
 const showSuggestions = ref(true)
 const currentLanguage = ref('ar')
-const favoritePlaces = ref([]); // Store the list of favorite places
-const placeName = ref(''); // Store the new favorite place name
-const placeDescription = ref(''); // Store the new favorite place description
-const showPlaceDialog = ref(false); // Control the dialog visibility
-const userId = ref(1); // Assume user is logged in with ID 1 (this would come from your authentication system)
-const showFavorites = ref(false);
-const editingPlace = ref(null);
-const showEditDialog = ref(false);
-const isDrawingActive = ref(false);
+
+// Favorite place dialog/edit states
+const favoritePlaces = ref([])
+const placeName = ref('')
+const placeDescription = ref('')
+const showPlaceDialog = ref(false)
+const showFavorites = ref(false)
+const editingPlace = ref(null)
+const showEditDialog = ref(false)
+const isDrawingActive = ref(false)
 
 // Leaflet map elements
 let map = null
@@ -476,11 +469,10 @@ const resetMap = () => {
 };
 
 
-
+// Initialize Leaflet map, controls, layers, drawing tools, and event handlers
 onMounted(() => {
-  // Get language from URL or localStorage
-  const savedLang = localStorage.getItem('mapLanguage') || 'ar'
-  currentLanguage.value = savedLang
+  const savedLang = localStorage.getItem('mapLanguage') || 'ar';
+  currentLanguage.value = savedLang;
 
   map = L.map('map', {
     center: [24.7136, 46.6753],
@@ -490,56 +482,39 @@ onMounted(() => {
     zoomControl: false,
     maxBoundsViscosity: 1.0,
     worldCopyJump: true
-  })
+  });
 
-  map.createPane('base')
-  map.getPane('base').style.zIndex = 200
+  map.createPane('base');
+  map.getPane('base').style.zIndex = 200;
 
-  // Initialize map events
   map.on('click', onMapClick);
-
-  // Fetch the user's favorite places after the map is mounted
   fetchFavoritePlaces();
 
-  //full screen
+  // Fullscreen control
   L.Control.Fullscreen = L.Control.extend({
-    options: {
-      position: 'topleft'
-    },
-
-    onAdd: function (map) {
+    options: { position: 'topleft' },
+    onAdd(map) {
       const container = L.DomUtil.create('div', 'leaflet-control-fullscreen leaflet-bar leaflet-control');
       const button = L.DomUtil.create('a', 'leaflet-control-fullscreen-button', container);
       button.href = '#';
       button.title = 'Full Screen';
       button.innerHTML = '<i class="fas fa-expand"></i>';
-
       L.DomEvent.on(button, 'click', L.DomEvent.stopPropagation)
         .on(button, 'click', L.DomEvent.preventDefault)
-        .on(button, 'click', () => {
-          toggleFullScreen();
-        });
-
+        .on(button, 'click', toggleFullScreen);
       return container;
     }
   });
-
-  L.control.fullscreen = function (opts) {
-    return new L.Control.Fullscreen(opts);
-  }
-
-  // Add the fullscreen control to the map
+  L.control.fullscreen = (opts) => new L.Control.Fullscreen(opts);
   L.control.fullscreen({ position: 'topleft' }).addTo(map);
-  L.Control.Language = L.Control.extend({
-    options: {
-      position: 'topleft'
-    },
 
-    onAdd: function (map) {
+  // Language control
+  L.Control.Language = L.Control.extend({
+    options: { position: 'topleft' },
+    onAdd(map) {
       const container = L.DomUtil.create('div', 'leaflet-control-language leaflet-bar leaflet-control');
       const button = L.DomUtil.create('a', 'leaflet-control-language-button', container);
       const dropdown = L.DomUtil.create('div', 'language-dropdown', container);
-
       button.href = '#';
       button.innerHTML = `<span>${currentLanguage.value.toUpperCase()}</span>`;
 
@@ -547,8 +522,7 @@ onMounted(() => {
         const item = L.DomUtil.create('a', 'language-item', dropdown);
         item.href = '#';
         item.innerHTML = lang.name;
-
-        L.DomEvent.on(item, 'click', function (e) {
+        L.DomEvent.on(item, 'click', (e) => {
           L.DomEvent.stop(e);
           currentLanguage.value = lang.code;
           button.innerHTML = `<span>${lang.code.toUpperCase()}</span>`;
@@ -556,195 +530,71 @@ onMounted(() => {
         });
       });
 
-      L.DomEvent.on(button, 'click', function (e) {
+      L.DomEvent.on(button, 'click', (e) => {
         L.DomEvent.stop(e);
         dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
       });
-
-      L.DomEvent.on(document, 'click', function () {
-        dropdown.style.display = 'none';
-      });
+      L.DomEvent.on(document, 'click', () => dropdown.style.display = 'none');
 
       return container;
     }
   });
-
-  L.control.language = function (opts) {
-    return new L.Control.Language(opts);
-  }
+  L.control.language = (opts) => new L.Control.Language(opts);
   L.control.language({ position: 'topleft' }).addTo(map);
   changeMapLanguage(savedLang);
 
-  // Create custom panes for better layer management
-  map.createPane('base')
-  map.getPane('base').style.zIndex = 200
+  // Tile layers
+  streetLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '© OpenStreetMap contributors', pane: 'base' });
+  satelliteLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: 'Tiles © Esri', pane: 'base' });
+  terrainLayer = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", { attribution: '© OpenTopoMap contributors', pane: 'base' });
 
-  streetLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '© OpenStreetMap contributors',
-    maxZoom: 19,
-    minZoom: 0,
-    pane: 'base',
-    bounds: [[-90, -180], [90, 180]],
-    tileSize: 256,
-    noWrap: false,
-    tms: false,
-    worldCopyJump: true,
-    continuousWorld: true,
-    zoomOffset: 0
-  })
-
-  satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles © Esri',
-    maxZoom: 19,
-    minZoom: 0,
-    pane: 'base',
-    bounds: [[-90, -180], [90, 180]],
-    tileSize: 256,
-    noWrap: false,
-    tms: false,
-    worldCopyJump: true,
-    continuousWorld: true,
-    zoomOffset: 0
-  })
-
-  terrainLayer = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
-    attribution: '© OpenTopoMap contributors',
-    maxZoom: 17,
-    minZoom: 0,
-    pane: 'base',
-    bounds: [[-90, -180], [90, 180]],
-    tileSize: 256,
-    noWrap: false,
-    tms: false,
-    worldCopyJump: true,
-    continuousWorld: true,
-    zoomOffset: 0
-  })
-
-  // Add this extension to handle world copies
-  L.GridLayer.prototype._setView = function (center, zoom, noPrune, noUpdate) {
-    var tileZoom = Math.round(zoom);
-    if ((this.options.maxZoom !== undefined && tileZoom > this.options.maxZoom) ||
-      (this.options.minZoom !== undefined && tileZoom < this.options.minZoom)) {
-      tileZoom = undefined;
-    }
-
-    var tileZoomChanged = this.options.updateWhenZooming && (tileZoom !== this._tileZoom);
-
-    if (!noUpdate || tileZoomChanged) {
-      this._tileZoom = tileZoom;
-
-      if (this._abortLoading) {
-        this._abortLoading();
-      }
-
-      this._updateLevels();
-      this._resetGrid();
-
-      if (tileZoom !== undefined) {
-        this._update(center);
-      }
-
-      if (!noPrune) {
-        this._pruneTiles();
-      }
-
-      this._noPrune = !!noPrune;
-    }
-
-    this._setZoomTransforms(center, zoom);
-  }
-
-  // Try alternative tile servers for better coverage
   const alternativeStreetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '© OpenStreetMap contributors, © CARTO',
-    maxZoom: 19,
-    minZoom: 0,
-    pane: 'base',
-    bounds: [[-90, -180], [90, 180]],
-    tileSize: 256,
-    noWrap: false,
-    tms: false,
-    worldCopyJump: true,
-    continuousWorld: true,
-    zoomOffset: 0
-  })
+    attribution: '© OpenStreetMap contributors, © CARTO', pane: 'base'
+  });
+  alternativeStreetLayer.addTo(map);
 
-  // Add the layers to the map
-  alternativeStreetLayer.addTo(map)
-
+  // Base/Overlay layers
   const baseLayers = {
     "Streets (Default)": alternativeStreetLayer,
     "Streets (OSM)": streetLayer,
     "Satellite": satelliteLayer,
     "Terrain": terrainLayer
-  }
-
+  };
   const overlayLayers = {
-    "Traffic": L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap contributors'
-    }),
-    "Buildings": L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap contributors'
-    })
-  }
+    "Traffic": L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', { maxZoom: 19 }),
+    "Buildings": L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', { maxZoom: 19 })
+  };
+  layerControl = L.control.layers(baseLayers, overlayLayers, { position: 'topright' }).addTo(map);
+  L.control.scale({ position: 'bottomright' }).addTo(map);
 
-  layerControl = L.control.layers(baseLayers, overlayLayers, { position: 'topright' }).addTo(map)
-  L.control.scale({ position: 'bottomright' }).addTo(map)
-
-  // Initialize FeatureGroup for drawn items
-  drawnItems = new L.FeatureGroup()
-  map.addLayer(drawnItems)
-
-  // Initialize FeatureGroup for drawn items
+  // Drawing features
   drawnItems = new L.FeatureGroup();
   map.addLayer(drawnItems);
 
-  // Initialize draw control without rectangle
   const drawControl = new L.Control.Draw({
     position: 'topleft',
     draw: {
-      polygon: {
-        allowIntersection: false,
-        showArea: true
-      },
-      polyline: {
-        metric: true
-      },
-      circle: {
-        metric: true
-      },
-      rectangle: false, // Disable rectangle here
+      polygon: { allowIntersection: false, showArea: true },
+      polyline: { metric: true },
+      circle: { metric: true },
+      rectangle: false,
       circlemarker: false,
       marker: true
     },
-    edit: {
-      featureGroup: drawnItems,
-      remove: true
-    }
+    edit: { featureGroup: drawnItems, remove: true }
   });
-
   map.addControl(drawControl);
-  // Track drawing and editing mode to disable favorite place dialog
+
   map.on('draw:drawstart', () => {
     isDrawingActive.value = true;
     showPlaceDialog.value = false;
   });
-
-  map.on('draw:drawstop', () => {
-    isDrawingActive.value = false;
-  });
-
+  map.on('draw:drawstop', () => { isDrawingActive.value = false; });
   map.on('draw:editstart', () => {
     isDrawingActive.value = true;
     showPlaceDialog.value = false;
   });
-
-  map.on('draw:editstop', () => {
-    isDrawingActive.value = false;
-  });
+  map.on('draw:editstop', () => { isDrawingActive.value = false; });
 
   // Handle draw events
   map.on('draw:created', async (e) => {
@@ -858,6 +708,7 @@ onMounted(() => {
   });
 
 })
+
 //Language configurations
 const languageConfig = {
   ar: {
@@ -947,29 +798,30 @@ const onMapClick = (event) => {
   currentMarker = L.marker(event.latlng).addTo(map).bindPopup('Click to add favorite place').openPopup();
 };
 
+// ===============================
+// Favorite Places: State & Setup
+// ===============================
+const favoritePlaceMarkers = []; // Stores map markers for favorite places
 
-// Favorite Places Logic
-
-// ============================
-// Fetch Favorite Places
-// ============================
-const favoritePlaceMarkers = [];
-
+// ===============================
+// Fetch Favorite Places from API
+// ===============================
 const fetchFavoritePlaces = async () => {
   try {
-    const response = await fetch(`http://localhost:8080/api/favorite-places/my`, {
+    const response = await fetch('http://localhost:8080/api/favorite-places/my', {
       method: 'GET',
       credentials: 'include'
     });
+
     if (!response.ok) throw new Error('Failed to fetch favorites');
     const data = await response.json();
     favoritePlaces.value = data;
 
-    // Clear old markers
+    // Clear old markers from map
     favoritePlaceMarkers.forEach(marker => map.removeLayer(marker));
     favoritePlaceMarkers.length = 0;
 
-    // Add markers with custom heart icon
+    // Add new markers with heart icon
     data.forEach(place => {
       const heartIcon = L.divIcon({
         html: '<i class="mdi mdi-heart" style="color:#1976D2;font-size:24px;"></i>',
@@ -983,7 +835,6 @@ const fetchFavoritePlaces = async () => {
 
       favoritePlaceMarkers.push(marker);
     });
-
   } catch (error) {
     console.error('Error fetching favorite places:', error);
     showError.value = true;
@@ -991,11 +842,17 @@ const fetchFavoritePlaces = async () => {
   }
 };
 
+// ===============================
+// Start Editing a Favorite Place
+// ===============================
 const startEditPlace = (place) => {
-  editingPlace.value = { ...place }; // clone to avoid binding issues
+  editingPlace.value = { ...place }; // Clone to avoid reactive conflicts
   showEditDialog.value = true;
 };
 
+// ===============================
+// Submit Edited Place to API
+// ===============================
 const submitEditPlace = async () => {
   try {
     await axios.put(`http://localhost:8080/api/favorite-places/update/${editingPlace.value.id}`, editingPlace.value, {
@@ -1012,9 +869,9 @@ const submitEditPlace = async () => {
   }
 };
 
-// ============================
-// Add, Delete, Edit Favorite Places
-// ============================
+// ===============================
+// Add New Favorite Place to API
+// ===============================
 const addFavoritePlace = async () => {
   if (!placeName.value || !placeDescription.value || !currentMarker) {
     showError.value = true;
@@ -1032,18 +889,15 @@ const addFavoritePlace = async () => {
   try {
     const response = await fetch('http://localhost:8080/api/favorite-places/add', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify(newPlace)
     });
 
     if (!response.ok) throw new Error('Failed to add');
 
-    const savedPlace = await response.json(); // Get the saved place with ID
+    const savedPlace = await response.json();
 
-    // Add marker manually with heart icon
     const heartIcon = L.divIcon({
       html: '<i class="mdi mdi-heart" style="color:#1976D2;font-size:24px;"></i>',
       iconSize: [24, 24],
@@ -1055,7 +909,7 @@ const addFavoritePlace = async () => {
       .addTo(map);
 
     favoritePlaceMarkers.push(marker);
-    favoritePlaces.value.push(savedPlace); // Optional: update list reactively
+    favoritePlaces.value.push(savedPlace);
 
     showSuccess.value = true;
     successMessage.value = 'Place added successfully!';
@@ -1075,6 +929,9 @@ const addFavoritePlace = async () => {
   }
 };
 
+// ===============================
+// Delete Favorite Place by ID
+// ===============================
 const deletePlace = async (placeId) => {
   try {
     await axios.delete(`http://localhost:8080/api/favorite-places/delete/${placeId}`, {
@@ -1087,17 +944,19 @@ const deletePlace = async (placeId) => {
     errorMessage.value = 'Could not delete the place.';
   }
 };
+
+// ===============================
+// Cancel Adding a New Favorite
+// ===============================
 const cancelAddPlace = () => {
   showPlaceDialog.value = false;
-
-  // Remove the marker if it exists
   if (currentMarker) {
     map.removeLayer(currentMarker);
     currentMarker = null;
   }
 };
 
-
+// Clean up fullscreen event listeners when the component is destroyed
 onUnmounted(() => {
   document.removeEventListener('fullscreenchange', handleFullscreenChange)
   document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
@@ -1107,33 +966,39 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+
+/* ========================
+   Layout & Containers
+======================== */
 .map-container {
   position: relative;
   transition: all 0.3s ease;
 }
 
-.map-controls {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 1000;
-  /* Make sure it's above the map */
+#map {
+  height: 700px;
+  width: 100%;
+  background: #f2f2f2;
+  transition: height 0.3s ease;
 }
 
-.welcome-card {
-  background: rgba(255, 255, 255, 0.474) !important;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.v-expansion-panels.route-panel {
+  width: 100%;
+  max-width: 100%;
+  margin: 20px auto 0 auto; /* add space above footer */
 }
 
+/* ========================
+   Fullscreen Mode Styles
+======================== */
 .fullscreen {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1000;
   background: white;
+  z-index: 1000;
 }
 
 .fullscreen #map {
@@ -1153,39 +1018,29 @@ onUnmounted(() => {
   height: 100%;
 }
 
-#map {
-  height: 700px;
-  width: 100%;
-  transition: height 0.3s ease;
-  background: #f2f2f2;
+.fullscreen .v-expansion-panels,
+.fullscreen .map-controls,
+.fullscreen .v-snackbar,
+.fullscreen .v-footer {
+  display: none !important;
 }
 
-.leaflet-layer {
-  will-change: transform;
-  image-rendering: -webkit-optimize-contrast;
+.fullscreen .leaflet-control-language {
+  margin-top: 10px;
 }
 
-.leaflet-tile-container {
-  will-change: transform;
-  transform-origin: 0 0;
+/* ========================
+   Welcome Dialog
+======================== */
+.welcome-card {
+  background: rgba(255, 255, 255, 0.474) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.leaflet-tile {
-  box-shadow: none !important;
-}
-
-.map-controls {
-  display: flex;
-  justify-content: space-evenly;
-  margin-top: 16px;
-}
-
-.map-btn {
-  flex-grow: 1;
-  font-size: 12px;
-  padding: 6px;
-}
-
+/* ========================
+   Search UI
+======================== */
 .search-bar {
   margin-bottom: 4px;
 }
@@ -1204,11 +1059,28 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 
-.v-expansion-panels.route-panel {
-  max-width: 600px;
-  margin: 0 auto;
+/* ========================
+   Map Controls
+======================== */
+.map-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-evenly;
+  margin-top: 16px;
 }
 
+.map-btn {
+  flex-grow: 1;
+  font-size: 12px;
+  padding: 6px;
+}
+
+/* ========================
+   Form Controls
+======================== */
 .v-text-field {
   margin-bottom: 16px;
 }
@@ -1217,7 +1089,9 @@ onUnmounted(() => {
   margin: 0 5px;
 }
 
-/* Draw control styles */
+/* ========================
+   Draw Controls
+======================== */
 .leaflet-draw-tooltip {
   background: rgba(0, 0, 0, 0.8);
   border: 1px solid #000;
@@ -1249,7 +1123,9 @@ onUnmounted(() => {
   background-color: #f5f5f5;
 }
 
-/* Current location marker animation */
+/* ========================
+   Current Location Marker
+======================== */
 .current-location-marker {
   position: relative;
 }
@@ -1279,36 +1155,60 @@ onUnmounted(() => {
     transform: scale(1);
     opacity: 1;
   }
-
   100% {
     transform: scale(3);
     opacity: 0;
   }
 }
 
-@media print {
-
-  .v-card-title,
-  .v-text-field,
-  .map-controls,
-  .v-snackbar,
-  .v-expansion-panels,
-  .leaflet-control-layers,
-  .leaflet-draw {
-    display: none !important;
-  }
-
-  #map {
-    height: 100vh !important;
-    margin: 0 !important;
-  }
-
-  .map-container {
-    margin: 0 !important;
-  }
+/* ========================
+   Favorite Places List
+======================== */
+.favorite-places-list {
+  margin-top: 8px;
+  padding: 0 4px;
+  max-height: 350px;
+  overflow-y: auto;
 }
 
-/* Layer control styles */
+.favorite-place-item {
+  transition: box-shadow 0.2s;
+}
+
+.favorite-place-item:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background-color: #f3f6fc !important;
+}
+
+.v-list-item-title {
+  font-size: 16px;
+}
+
+.v-list-item-subtitle {
+  font-size: 14px;
+  color: #666;
+}
+
+/* ========================
+   Leaflet Core Styles
+======================== */
+.leaflet-layer {
+  will-change: transform;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.leaflet-tile-container {
+  will-change: transform;
+  transform-origin: 0 0;
+}
+
+.leaflet-tile {
+  box-shadow: none !important;
+}
+
+/* ========================
+   Layer Control Styles
+======================== */
 .leaflet-control-layers {
   background: white;
   padding: 6px;
@@ -1332,14 +1232,18 @@ onUnmounted(() => {
   padding: 0;
 }
 
-/* Scale control styles */
+/* ========================
+   Scale Control
+======================== */
 .leaflet-control-scale {
   background-color: rgba(255, 255, 255, 0.8);
   padding: 2px 5px;
   border-radius: 2px;
 }
 
-/* Draw measurement result popup styles */
+/* ========================
+   Popups (Measure/Details)
+======================== */
 .leaflet-popup-content {
   margin: 8px 12px;
   font-size: 14px;
@@ -1355,6 +1259,9 @@ onUnmounted(() => {
   margin-top: -1px;
 }
 
+/* ========================
+   Fullscreen Button
+======================== */
 .leaflet-control-fullscreen {
   background: white;
   border: 2px solid rgba(0, 0, 0, 0.2);
@@ -1377,11 +1284,13 @@ onUnmounted(() => {
   background-color: #f4f4f4;
 }
 
-/* Add Font Awesome icon styles */
 .leaflet-control-fullscreen-button i {
   font-size: 16px;
 }
 
+/* ========================
+   Language Switcher
+======================== */
 .leaflet-control-language {
   background: white;
   padding: 0;
@@ -1434,6 +1343,9 @@ onUnmounted(() => {
   background-color: #f4f4f4;
 }
 
+/* ========================
+   RTL Language Overrides
+======================== */
 [dir="rtl"] .leaflet-control-language {
   margin-right: 10px;
 }
@@ -1452,42 +1364,27 @@ onUnmounted(() => {
   margin-right: 0;
 }
 
-/* Fullscreen adjustments */
-.fullscreen .leaflet-control-language {
-  margin-top: 10px;
-}
+/* ========================
+   Print View Adjustments
+======================== */
+@media print {
+  .v-card-title,
+  .v-text-field,
+  .map-controls,
+  .v-snackbar,
+  .v-expansion-panels,
+  .leaflet-control-layers,
+  .leaflet-draw {
+    display: none !important;
+  }
 
-.fullscreen .v-expansion-panels,
-.fullscreen .map-controls,
-.fullscreen .v-snackbar,
-.fullscreen .v-footer {
-  display: none !important;
-}
+  #map {
+    height: 100vh !important;
+    margin: 0 !important;
+  }
 
-/* Favorite Places List */
-.favorite-places-list {
-  margin-top: 8px;
-  padding: 0 4px;
-  max-height: 350px;
-  overflow-y: auto;
+  .map-container {
+    margin: 0 !important;
+  }
 }
-
-.favorite-place-item {
-  transition: box-shadow 0.2s;
-}
-
-.favorite-place-item:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  background-color: #f3f6fc !important;
-}
-
-.v-list-item-title {
-  font-size: 16px;
-}
-
-.v-list-item-subtitle {
-  font-size: 14px;
-  color: #666;
-}
-
 </style>
