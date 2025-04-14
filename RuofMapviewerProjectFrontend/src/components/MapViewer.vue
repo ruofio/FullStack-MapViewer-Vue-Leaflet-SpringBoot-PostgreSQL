@@ -855,9 +855,13 @@ const startEditPlace = (place) => {
 // ===============================
 const submitEditPlace = async () => {
   try {
-    await axios.put(`http://localhost:8080/api/favorite-places/update/${editingPlace.value.id}`, editingPlace.value, {
+    const updatedData = { ...editingPlace.value };
+    delete updatedData.user;
+
+    await axios.put(`http://localhost:8080/api/favorite-places/update/${updatedData.id}`, updatedData, {
       withCredentials: true
     });
+
     showSuccess.value = true;
     successMessage.value = 'Place updated successfully!';
     showEditDialog.value = false;
@@ -966,7 +970,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-
 /* ========================
    Layout & Containers
 ======================== */
@@ -985,7 +988,8 @@ onUnmounted(() => {
 .v-expansion-panels.route-panel {
   width: 100%;
   max-width: 100%;
-  margin: 20px auto 0 auto; /* add space above footer */
+  margin: 20px auto 0 auto;
+  /* add space above footer */
 }
 
 /* ========================
@@ -1155,6 +1159,7 @@ onUnmounted(() => {
     transform: scale(1);
     opacity: 1;
   }
+
   100% {
     transform: scale(3);
     opacity: 0;
@@ -1368,6 +1373,7 @@ onUnmounted(() => {
    Print View Adjustments
 ======================== */
 @media print {
+
   .v-card-title,
   .v-text-field,
   .map-controls,
