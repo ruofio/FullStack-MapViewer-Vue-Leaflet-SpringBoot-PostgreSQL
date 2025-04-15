@@ -1,6 +1,6 @@
 # 🌍 Map Viewer Application
 
-An interactive map viewer built with **Vue.js, Leaflet, Spring Boot, and PostgreSQL**, offering various geospatial features such as location tracking, route navigation, fullscreen mode, printing, and resetting to the original state.
+An interactive map viewer built with **Vue.js, Leaflet, Spring Boot, and PostgreSQL**, offering various geospatial features such as location tracking, route navigation, fullscreen mode, printing, drawing tools, multi-language support, and user-specific favorite places.
 
 ## 🚀 Features
 
