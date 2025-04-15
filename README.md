@@ -8,11 +8,26 @@ An interactive map viewer built with **Vue.js, Leaflet, Spring Boot, and Postgre
 - 🔑 **User Authentication** (Login & Signup)  
 - 🗺 **Interactive Map Display** (Leaflet-based)  
 - 📌 **Show My Location**  
-- 📏 **Routing & Navigation** (Distance & Time Calculation)  
-- 📜 **Step-by-Step Route Instructions**  
+- ✏️ **Draw on the Map**  
+  - Draw shapes like polygons and lines  
+  - Cancel drawing at any time  
+- 🌐 **Change Map Language**  
+  - Supports multiple languages  
+  - Map and UI update dynamically  
+- 💙 **Favorite Places Management**  
+  - Add, update, and delete favorite places  
+  - Displayed on map as blue heart icons  
+  - Info window displays place details  
+  - Persisted for each user across sessions  
+  - Each user sees only their own favorites  
+- 📍 **Custom Marker with Place Info**  
+  - Mark places and view info on click  
+- 📏 **Routing & Navigation**  
+  - Calculate distance and time  
+  - Step-by-step route instructions  
 - 🔄 **Reset Map to Original View**  
 - 🖥 **Fullscreen Mode**  
-- 🖨 **Print Map**  
+- 🖨 **Print Map**
 
 ## 🛠 Tech Stack
 
